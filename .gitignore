@@ -2,3 +2,7 @@ build/
 install/
 log/
 .vscode/
+__pycache__/
+*.py[cod]
+*.so
+.pytest_cache/
