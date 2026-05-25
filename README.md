@@ -13,6 +13,13 @@ ros2-drone-gnss-ins-sim/
 ├── .gitignore
 ├── urdf_config2.rviz
 └── src/
+  ├── my_robot_bringup/             # ament_cmake bringup/simulation package
+  │   ├── launch/
+  │   │   └── my_robot_gazebo.launch.xml
+  │   ├── config/
+  │   │   └── gazebo_bridge.yaml
+  │   ├── package.xml
+  │   └── CMakeLists.txt
     ├── my_robot_controller/          # ament_python package
     │   ├── my_robot_controller/
     │   │   ├── my_first_node.py
@@ -49,11 +56,17 @@ Python ROS 2 nodes:
 ### 2) `my_robot_description`
 Description package with:
 - URDF/Xacro model (`urdf/my_robot.urdf.xacro`)
+- Gazebo include (`urdf/mobile_base_gazebo.xacro.xml`)
 - RViz config (`rviz/urdf_config.rviz`)
 - Launch file (`launch/display.launch.xml`) that starts:
   - `robot_state_publisher`
   - `joint_state_publisher_gui`
   - `rviz2`
+
+### 3) `my_robot_bringup`
+Bringup package with:
+- Gazebo launch orchestration (`launch/my_robot_gazebo.launch.xml`)
+- ROS-Gazebo bridge config (`config/gazebo_bridge.yaml`)
 
 ## Requirements
 
