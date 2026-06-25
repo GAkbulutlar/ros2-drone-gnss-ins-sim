@@ -4,6 +4,10 @@ A ROS 2 workspace featuring a custom differential-drive robot built from scratch
 
 ---
 
+<video src="Video/Gazebo.mp4" controls width="100%"></video>
+
+---
+
 ## Features
 
 - **Custom URDF/Xacro robot** — differential-drive mobile base with 4 wheels
