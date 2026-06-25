@@ -6,6 +6,8 @@ A ROS 2 workspace featuring a custom differential-drive robot built from scratch
 
 <video src="Video/Gazebo.mp4" controls width="100%"></video>
 
+> **▶ [Watch demo video](Video/Gazebo.mp4)** — If the player above doesn't load, click the link or upload the video via GitHub's web UI for inline playback.
+
 ---
 
 ## Features
