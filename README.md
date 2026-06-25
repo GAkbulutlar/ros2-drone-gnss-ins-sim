@@ -4,7 +4,11 @@ A ROS 2 workspace featuring a custom differential-drive robot built from scratch
 
 ---
 
-<video src="https://raw.githubusercontent.com/GAkbulutlar/ros2-drone-gnss-ins-sim/main/Video/Gazebo.mp4" controls autoplay loop muted width="100%"></video>
+## Demo Simulation
+
+<video src="https://github.com/user-attachments/assets/cc9d1246-57ad-4be1-9f14-5bb3a4358e92" controls="controls" muted="muted" style="max-width: 100%;">
+  Your browser does not support the video tag.
+</video>
 
 ---
 
