@@ -1,38 +1,38 @@
-# ROS 2 Drone GNSS/INS Sim (Learning Workspace)
+# ROS 2 Mobile Robot — Gazebo Simulation with Camera & LiDAR
 
-This repository contains a small ROS 2 workspace for practicing:
-- ROS 2 Python nodes (`rclpy`) with `turtlesim`
-- Robot description setup with URDF/Xacro + RViz
-- Basic workspace/package structure for `ament_python` and `ament_cmake`
+A ROS 2 workspace featuring a custom differential-drive robot built from scratch, equipped with a **camera** and a **2D LiDAR**, and simulated inside a **Gazebo Harmonic** world.
+
+---
+
+## Features
+
+- **Custom URDF/Xacro robot** — differential-drive mobile base with 4 wheels
+- **Camera sensor** — 640×480 RGB camera mounted at the front of the robot, bridged to `/camera/image_raw` and `/camera/camera_info`
+- **2D LiDAR sensor** — 360° laser scanner (640 samples, 10 m range) publishing to `/scan`
+- **Gazebo Harmonic simulation** — custom SDF world with ground plane and environment objects
+- **`ros_gz_bridge`** — full bidirectional bridge between Gazebo topics and ROS 2 topics
+- **RViz2 visualisation** — pre-configured layout for TF, LaserScan, and camera feed
+
+---
 
 ## Project Structure
 
 ```text
-ros2-drone-gnss-ins-sim/
+ros2-drone-gnss-ins-sim/          ← ROS 2 workspace root
 ├── README.md
 ├── .gitignore
 ├── urdf_config2.rviz
 └── src/
-  ├── my_robot_bringup/             # ament_cmake bringup/simulation package
-  │   ├── launch/
-  │   │   └── my_robot_gazebo.launch.xml
-  │   ├── config/
-  │   │   └── gazebo_bridge.yaml
-  │   ├── package.xml
-  │   └── CMakeLists.txt
-    ├── my_robot_controller/          # ament_python package
-    │   ├── my_robot_controller/
-    │   │   ├── my_first_node.py
-    │   │   ├── draw_circle.py
-    │   │   ├── draw_triangle.py
-    │   │   ├── pose_subscriber.py
-    │   │   └── turtle_controller.py
-    │   ├── resource/
-    │   ├── test/
+    ├── my_robot_bringup/         # Launch, world, and bridge config
+    │   ├── launch/
+    │   │   └── my_robot_gazebo.launch.xml
+    │   ├── config/
+    │   │   └── gazebo_bridge.yaml
+    │   ├── worlds/
+    │   │   └── test_world.sdf
     │   ├── package.xml
-    │   ├── setup.py
-    │   └── setup.cfg
-    └── my_robot_description/         # ament_cmake package
+    │   └── CMakeLists.txt
+    └── my_robot_description/     # URDF/Xacro robot model + RViz config
         ├── launch/
         │   └── display.launch.xml
         ├── rviz/
@@ -43,103 +43,94 @@ ros2-drone-gnss-ins-sim/
         └── CMakeLists.txt
 ```
 
-## What Is Included
+> **Note:** `build/`, `install/`, and `log/` directories are generated at the **workspace root** by `colcon build` and are excluded via `.gitignore`. Always run `colcon build` from the workspace root, **not** from inside `src/`.
 
-### 1) `my_robot_controller`
-Python ROS 2 nodes:
-- `test_node`: minimal timer logger node
-- `draw_circle`: publishes velocity commands for circular motion in `turtlesim`
-- `pose_subscriber`: subscribes to `/turtle1/pose`
-- `turtle_controller`: basic wall-avoid behavior + pen color service calls
-- `draw_triangle`: triangle drawing node scaffold
+---
 
-### 2) `my_robot_description`
-Description package with:
-- URDF/Xacro model (`urdf/my_robot.urdf.xacro`)
-- Gazebo include (`urdf/mobile_base_gazebo.xacro.xml`)
-- RViz config (`rviz/urdf_config.rviz`)
-- Launch file (`launch/display.launch.xml`) that starts:
-  - `robot_state_publisher`
-  - `joint_state_publisher_gui`
-  - `rviz2`
+## Robot Model
 
-### 3) `my_robot_bringup`
-Bringup package with:
-- Gazebo launch orchestration (`launch/my_robot_gazebo.launch.xml`)
-- ROS-Gazebo bridge config (`config/gazebo_bridge.yaml`)
+The robot is defined in [`src/my_robot_description/urdf/my_robot.urdf.xacro`](src/my_robot_description/urdf/my_robot.urdf.xacro).
 
-## Requirements
+| Component | Details |
+|---|---|
+| **Base** | 0.6 × 0.4 × 0.2 m box, 5 kg |
+| **Wheels** | 4 × cylinder (r = 0.1 m), continuous joints, differential drive |
+| **Camera** | Front-mounted, 640×480 px, 80° FoV, 20 Hz, Gaussian noise |
+| **LiDAR** | Top-mounted, 360°, 640 samples, 0.08–10 m, 10 Hz, Gaussian noise |
 
-- Ubuntu + ROS 2 installed (Humble/Iron/Jazzy style setup)
-- `colcon`
-- `xacro`, `rviz2`, `robot_state_publisher`, `joint_state_publisher_gui`
-- `turtlesim` (for controller nodes)
+### Gazebo plugins
 
-Example dependencies (adjust for your ROS 2 distro):
+- `gz::sim::systems::DiffDrive` — velocity control via `/cmd_vel`
+- `gz::sim::systems::JointStatePublisher` — publishes `/joint_states`
+- `gz::sim::systems::Sensors` (camera + lidar) — sensor data
+
+---
+
+## Topic Bridge (`gazebo_bridge.yaml`)
+
+| ROS 2 Topic | Gazebo Topic | Direction |
+|---|---|---|
+| `/clock` | `/clock` | GZ → ROS |
+| `/joint_states` | `/world/empty/model/my_robot/joint_state` | GZ → ROS |
+| `/tf` | `/model/my_robot/tf` | GZ → ROS |
+| `/cmd_vel` | `/model/my_robot/cmd_vel` | ROS → GZ |
+| `/camera/image_raw` | `/camera/image_raw` | GZ → ROS |
+| `/camera/camera_info` | `/camera/camera_info` | GZ → ROS |
+| `/scan` | `/scan` | GZ → ROS |
+
+---
+
+## Prerequisites
+
+| Dependency | Version |
+|---|---|
+| ROS 2 | Jazzy (or Humble) |
+| Gazebo | Harmonic |
+| `ros_gz_sim` | matching distro |
+| `ros_gz_bridge` | matching distro |
+| `robot_state_publisher` | matching distro |
+
+---
+
+## Build & Run
 
 ```bash
-sudo apt update
-sudo apt install -y \
-  ros-$ROS_DISTRO-turtlesim \
-  ros-$ROS_DISTRO-xacro \
-  ros-$ROS_DISTRO-rviz2 \
-  ros-$ROS_DISTRO-robot-state-publisher \
-  ros-$ROS_DISTRO-joint-state-publisher-gui \
-  python3-colcon-common-extensions
-```
-
-## Build
-
-From workspace root:
-
-```bash
+# 1. Clone
+git clone https://github.com/GAkbulutlar/ros2-drone-gnss-ins-sim.git
 cd ros2-drone-gnss-ins-sim
-source /opt/ros/$ROS_DISTRO/setup.bash
-colcon build
+
+# 2. Build (always from workspace root)
+colcon build --symlink-install
+
+# 3. Source
 source install/setup.bash
+
+# 4. Launch — Gazebo + RViz
+ros2 launch my_robot_bringup my_robot_gazebo.launch.xml
 ```
 
-## Run
+To drive the robot:
+```bash
+ros2 run teleop_twist_keyboard teleop_twist_keyboard --ros-args -r cmd_vel:=/cmd_vel
+```
 
-### Launch URDF + RViz
+To view the camera feed:
+```bash
+ros2 run rqt_image_view rqt_image_view /camera/image_raw
+```
+
+---
+
+## Key Topics After Launch
 
 ```bash
-ros2 launch my_robot_description display.launch.xml
+ros2 topic list
+# /camera/camera_info
+# /camera/image_raw
+# /clock
+# /cmd_vel
+# /joint_states
+# /scan
+# /tf
+# /tf_static
 ```
-
-### Run turtlesim + control nodes
-
-Terminal 1:
-```bash
-source /opt/ros/$ROS_DISTRO/setup.bash
-source ~/ros2-drone-gnss-ins-sim/install/setup.bash
-ros2 run turtlesim turtlesim_node
-```
-
-Terminal 2 (choose a node):
-```bash
-source /opt/ros/$ROS_DISTRO/setup.bash
-source ~/ros2-drone-gnss-ins-sim/install/setup.bash
-ros2 run my_robot_controller draw_circle
-```
-
-Other useful nodes:
-
-```bash
-ros2 run my_robot_controller pose_subscriber
-ros2 run my_robot_controller turtle_controller
-ros2 run my_robot_controller test_node
-```
-
-## Notes
-
-- The launch file name was standardized to `display.launch.xml`.
-- Python cache artifacts are now ignored via `.gitignore`.
-- Some package metadata still contains placeholder values (`TODO`) in `package.xml`/`setup.py`.
-
-## Next Improvements (Recommended)
-
-- Replace placeholder package metadata (description, license, maintainer email).
-- Fix and verify `draw_triangle.py` behavior and entry point mapping.
-- Add one command section for simulation startup scripts.
-- Add CI checks for lint + test in GitHub Actions.
