@@ -35,10 +35,6 @@
         <color rgba="0 0 0.5 1" />
     </material>
 
-    <material name="red">
-        <color rgba="0.8 0 0 1" />
-    </material>
-
     <link name="base_footprint" />
 
     <link name="base_link">
@@ -166,8 +162,8 @@
                     <format>R8G8B8</format>
                 </image>
                 <clip>
-                    <near>0.1</near>
-                    <far> 15 </far>
+                   <near>0.1</near>
+                   <far> 15 </far>
                 </clip>
                 <noise>
                     <type> gaussian </type>
@@ -181,63 +177,6 @@
             <visualize>true</visualize>
             <update_rate>20</update_rate>
             <topic>camera/image_raw</topic>
-        </sensor>
-    </gazebo>
-
-    <xacro:property name="laser_radius" value="0.05" />
-    <xacro:property name="laser_height" value="0.04" />
-
-    <link name="laser_frame">
-        <visual>
-            <geometry>
-                <cylinder radius="${laser_radius}" length="${laser_height}" />
-            </geometry>
-            <material name="red" />
-        </visual>
-        <collision>
-            <geometry>
-                <cylinder radius="${laser_radius}" length="${laser_height}" />
-            </geometry>
-        </collision>
-        <xacro:cylinder_inertia m="0.1" r="${laser_radius}" h="${laser_height}" o_xyz="0 0 0" o_rpy="0 0 0" />
-    </link>
-
-    <joint name="base_laser_joint" type="fixed">
-        <parent link="base_link" />
-        <child link="laser_frame" />
-        <origin xyz="0.0 0.0 ${base_height + laser_height / 2.0}" rpy="0 0 0" />
-    </joint>
-
-   <gazebo reference="laser_frame">
-        <sensor name="lidar" type="lidar">
-            <pose>0 0 0 0 0 0</pose>
-            <always_on>1</always_on>
-            <visualize>true</visualize>
-            <update_rate>10</update_rate>
-            <topic>scan</topic>
-            <lidar>
-                <scan>
-                    <horizontal>
-                        <samples>640</samples>
-                        <resolution>1</resolution>
-                        <min_angle>-3.1415926</min_angle> 
-                        <max_angle>3.1415926</max_angle>  
-                    </horizontal>
-                </scan>
-                <range>
-                    <min>0.08</min>
-                    <max>10.0</max>
-                </range>
-                <noise>
-                    <type>gaussian</type>
-                    <mean>0.0</mean>
-                    <stddev>0.01</stddev>
-                </noise>
-            </lidar>
-            
-            <gz_frame_id>laser_frame</gz_frame_id>
-            
-            <frame_id>laser_frame</frame_id>
         </sensor>
     </gazebo>
 </robot>

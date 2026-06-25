@@ -1,0 +1,132 @@
+<sdf version='1.10'>
+  <world name='empty'>
+    <physics name='1ms' type='ignored'>
+      <max_step_size>0.001</max_step_size>
+      <real_time_factor>1</real_time_factor>
+      <real_time_update_rate>1000</real_time_update_rate>
+    </physics>
+    <plugin name='gz::sim::systems::Physics' filename='gz-sim-physics-system'/>
+    <plugin name='gz::sim::systems::UserCommands' filename='gz-sim-user-commands-system'/>
+    <plugin name='gz::sim::systems::SceneBroadcaster' filename='gz-sim-scene-broadcaster-system'/>
+    <plugin name='gz::sim::systems::Contact' filename='gz-sim-contact-system'/>
+    <plugin name='gz::sim::systems::Sensors' filename='gz-sim-sensors-system'>
+      <render_engine>ogre2</render_engine>
+    </plugin>
+    <gravity>0 0 -9.8000000000000007</gravity>
+    <magnetic_field>5.5644999999999998e-06 2.2875799999999999e-05 -4.2388400000000002e-05</magnetic_field>
+    <atmosphere type='adiabatic'/>
+    <scene>
+      <ambient>0.400000006 0.400000006 0.400000006 1</ambient>
+      <background>0.699999988 0.699999988 0.699999988 1</background>
+      <shadows>true</shadows>
+    </scene>
+    <model name='ground_plane'>
+      <static>true</static>
+      <link name='link'>
+        <collision name='collision'>
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>100 100</size>
+            </plane>
+          </geometry>
+          <surface>
+            <friction>
+              <ode/>
+            </friction>
+            <bounce/>
+            <contact/>
+          </surface>
+        </collision>
+        <visual name='visual'>
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>100 100</size>
+            </plane>
+          </geometry>
+          <material>
+            <ambient>0.800000012 0.800000012 0.800000012 1</ambient>
+            <diffuse>0.800000012 0.800000012 0.800000012 1</diffuse>
+            <specular>0.800000012 0.800000012 0.800000012 1</specular>
+          </material>
+        </visual>
+        <pose>0 0 0 0 0 0</pose>
+        <inertial>
+          <pose>0 0 0 0 0 0</pose>
+          <mass>1</mass>
+          <inertia>
+            <ixx>1</ixx>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyy>1</iyy>
+            <iyz>0</iyz>
+            <izz>1</izz>
+          </inertia>
+        </inertial>
+        <enable_wind>false</enable_wind>
+      </link>
+      <pose>0 0 0 0 0 0</pose>
+      <self_collide>false</self_collide>
+    </model>
+    <include>
+      <uri>file:///home/gakbulu/.gz/fuel/fuel.gazebosim.org/openrobotics/models/pine tree/6</uri>
+      <name>Pine Tree</name>
+      <pose>3.005912858368962 -3.4992806270660295 0 0 0 0</pose>
+    </include>
+    <include>
+      <uri>file:///home/gakbulu/.gz/fuel/fuel.gazebosim.org/openrobotics/models/pine tree/6</uri>
+      <name>Pine Tree_0</name>
+      <pose>1.0037285583856521 -3.93405541374982 0 0 0 0</pose>
+    </include>
+    <include>
+      <uri>file:///home/gakbulu/.gz/fuel/fuel.gazebosim.org/openrobotics/models/walking person/3</uri>
+      <name>person_walking</name>
+      <pose>5.0513707688761986 4.0165943604794565 -3.6819791788406112e-11 -1.1893020663261754e-22 -5.0389574804873607e-22 -6.5390034200558375e-22</pose>
+    </include>
+    <include>
+      <uri>file:///home/gakbulu/.gz/fuel/fuel.gazebosim.org/openrobotics/models/hatchback/3</uri>
+      <name>hatchback</name>
+      <pose>5.3798827562119449 6.4595248646656156 0 0 0 0</pose>
+    </include>
+    <include>
+      <uri>file:///home/gakbulu/.gz/fuel/fuel.gazebosim.org/openrobotics/models/hatchback/3</uri>
+      <name>hatchback_0</name>
+      <pose>-0.36761347551060641 6.1991746343107579 0 0 0 0</pose>
+    </include>
+    <include>
+      <uri>file:///home/gakbulu/.gz/fuel/fuel.gazebosim.org/openrobotics/models/outsidebench/3</uri>
+      <name>OutsideBench</name>
+      <pose>7.5258425176081536 2.3229304362527956 -9.9163793989850329e-08 1.0074771885912472e-07 -1.3092807063679737e-07 3.1142797179662796</pose>
+    </include>
+    <include>
+      <uri>file:///home/gakbulu/.gz/fuel/fuel.gazebosim.org/openrobotics/models/foodcourtbenchlong/2</uri>
+      <name>FoodCourtBenchLong</name>
+      <pose>7.4618301391601562 0.038352500647306442 0 0 0 3.0994000978798719</pose>
+    </include>
+    <include>
+      <uri>file:///home/gakbulu/.gz/fuel/fuel.gazebosim.org/openrobotics/models/foodcourtbenchlong/2</uri>
+      <name>FoodCourtBenchLong_0</name>
+      <pose>7.2113800048828125 -2.2296500205993652 0 0 0 -3.1197901538409041</pose>
+    </include>
+    <light name='sun' type='directional'>
+      <pose>0 0 10 0 0 0</pose>
+      <cast_shadows>true</cast_shadows>
+      <intensity>1</intensity>
+      <direction>-0.5 0.10000000000000001 -0.90000000000000002</direction>
+      <diffuse>0.800000012 0.800000012 0.800000012 1</diffuse>
+      <specular>0.200000003 0.200000003 0.200000003 1</specular>
+      <attenuation>
+        <range>1000</range>
+        <linear>0.01</linear>
+        <constant>0.90000000000000002</constant>
+        <quadratic>0.001</quadratic>
+      </attenuation>
+      <spot>
+        <inner_angle>0</inner_angle>
+        <outer_angle>0</outer_angle>
+        <falloff>0</falloff>
+      </spot>
+    </light>
+  </world>
+</sdf>
