@@ -49,6 +49,56 @@ class TrajectoryRecorder(Node):
         fig, ax = plt.subplots(figsize=(10, 10))
         ax.set_facecolor("#111111")
         fig.patch.set_facecolor("#1e1e1e")
+
+        line_handles = []
+        for topic, (label, color, lw) in TOPICS.items():
+            xs, ys = self._paths[topic]["x"], self._paths[topic]["y"]
+            if len(xs) < 2:
+                continue
+            n = len(xs)
+            line, = ax.plot(xs, ys, color=color, linewidth=lw, alpha=0.95, zorder=3)
+            line_handles.append((line, f"{label}  ({n} pts)"))
+            # start marker
+            ax.plot(xs[0],  ys[0],  "o", color=color, markersize=11,
+                    markeredgecolor="white", markeredgewidth=0.7, zorder=6)
+            # end marker
+            ax.plot(xs[-1], ys[-1], "s", color=color, markersize=11,
+                    markeredgecolor="white", markeredgewidth=0.7, zorder=6)
+
+        ax.set_xlabel("X  [m]", color="#dddddd", fontsize=13, labelpad=8)
+        ax.set_ylabel("Y  [m]", color="#dddddd", fontsize=13, labelpad=8)
+        ax.set_title(
+            "Robot Trajectory Comparison\n"
+            "Sensor Fusion with robot_localization EKF  "
+            "(Ground Truth  |  Wheel Odom  |  EKF Fused)",
+            color="white", fontsize=14, fontweight="bold", pad=18)
+        ax.tick_params(colors="#cccccc", which="both", labelsize=11)
+        for spine in ax.spines.values():
+            spine.set_color("#444444")
+        ax.xaxis.set_major_locator(ticker.MultipleLocator(1))
+        ax.yaxis.set_major_locator(ticker.MultipleLocator(1))
+        ax.grid(True, color="#2a2a2a", linewidth=0.8, zorder=0)
+        ax.set_aspect("equal", adjustable="datalim")
+        ax.legend(
+            [h for h, _ in line_handles],
+            [l for _, l in line_handles],
+            facecolor="#222", edgecolor="#555", labelcolor="white",
+            fontsize=11, loc="best", framealpha=0.88)
+        ax.annotate("circle = start     square = end",
+                    xy=(0.02, 0.02), xycoords="axes fraction",
+                    color="#777777", fontsize=9)
+
+        os.makedirs(SAVE_DIR, exist_ok=True)
+        ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        out = os.path.join(SAVE_DIR, f"trajectory_{ts}.png")
+        fig.savefig(out, dpi=150, bbox_inches="tight", facecolor=fig.get_facecolor())
+        plt.close(fig)
+        print(f"[trajectory_recorder] Plot saved  ->  {out}")
+        try:
+            os.system(f'xdg-open "{out}" 2>/dev/null &')
+        except Exception:
+            pass
+        fig.patch.set_facecolor("#1e1e1e")
         line_handles = []
         for topic, (label, color, lw) in TOPICS.items():
             xs, ys = self._paths[topic]["x"], self._paths[topic]["y"]
