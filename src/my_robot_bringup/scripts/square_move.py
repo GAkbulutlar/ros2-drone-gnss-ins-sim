@@ -1,151 +1,224 @@
 #!/usr/bin/env python3
 """
-square_move.py
-Drives the robot in a 2 m × 2 m square using EKF-filtered odometry feedback.
-Vertices: (0,0) → (2,0) → (2,-2) → (0,-2) → (0,0)  [right-hand turns]
+Square path controller for a mobile robot in ROS 2, publishing TwistStamped.
 
-Run (after sourcing):
-    python3 src/my_robot_bringup/scripts/square_move.py
+- Uses /odom to measure distance and heading.
+- Publishes TwistStamped on /cmd_vel (or your chosen topic).
 """
 
 import math
+
 import rclpy
 from rclpy.node import Node
-from geometry_msgs.msg import TwistStamped
+
+from geometry_msgs.msg import Twist, TwistStamped
 from nav_msgs.msg import Odometry
 
 
-# ── tuning parameters ────────────────────────────────────────────────────────
-SIDE_M          = 2.0     # square side length  [m]
-LINEAR_SPEED    = 0.3     # forward speed       [m/s]
-ANGULAR_SPEED   = 0.4     # turning speed       [rad/s]
-LINEAR_TOL      = 0.03    # distance tolerance  [m]
-ANGULAR_TOL     = 0.03    # angle tolerance     [rad]
-CMD_VEL_TOPIC   = "/diff_drive_controller/cmd_vel"
-ODOM_TOPIC      = "/odometry/filtered"
-# ─────────────────────────────────────────────────────────────────────────────
+def yaw_from_quaternion(q):
+    """Extract yaw (rotation around Z) from a quaternion."""
+    siny_cosp = 2.0 * (q.w * q.z + q.x * q.y)
+    cosy_cosp = 1.0 - 2.0 * (q.y * q.y + q.z * q.z)
+    return math.atan2(siny_cosp, cosy_cosp)
 
 
-def _yaw_from_quat(q) -> float:
-    return math.atan2(
-        2.0 * (q.w * q.z + q.x * q.y),
-        1.0 - 2.0 * (q.y * q.y + q.z * q.z),
-    )
-
-
-def _wrap(angle: float) -> float:
-    """Wrap angle to [-π, π]."""
-    while angle >  math.pi: angle -= 2 * math.pi
-    while angle < -math.pi: angle += 2 * math.pi
+def normalize_angle(angle):
+    """Normalize angle to the range [-pi, pi]."""
+    while angle > math.pi:
+        angle -= 2.0 * math.pi
+    while angle < -math.pi:
+        angle += 2.0 * math.pi
     return angle
 
 
 class SquareMover(Node):
     def __init__(self):
-        super().__init__("square_mover")
+        super().__init__('square_mover')
 
-        self._pub  = self.create_publisher(TwistStamped, CMD_VEL_TOPIC, 10)
-        self._sub  = self.create_subscription(Odometry, ODOM_TOPIC,
-                                              self._odom_cb, 10)
+        # Parameters
+        self.side_length = 2.0        # meters
+        self.linear_speed = 0.2       # m/s
 
-        # current pose (from EKF odometry)
-        self._x = self._y = self._yaw = 0.0
-        self._odom_ready = False
+        # Coarse turn
+        self.angular_speed_coarse = 0.4     # rad/s
+        self.angle_coarse_thresh = math.radians(6.0)   # switch to fine control
 
-        # state machine
-        self._state   = "wait"   # wait | move | turn | done
-        self._side    = 0        # which side we're on (0-3)
-        self._ref_x   = 0.0      # reference pose at segment start
-        self._ref_y   = 0.0
-        self._ref_yaw = 0.0
+        # Fine turn
+        self.angular_speed_fine = 0.15      # rad/s
+        self.angle_tolerance_fine = math.radians(0.5)  # final tolerance
 
-        self._timer = self.create_timer(0.05, self._step)   # 20 Hz loop
-        self.get_logger().info(
-            f"SquareMover ready – will trace a {SIDE_M} m² square."
+        self.dist_tolerance = 0.01   # meters
+
+        # Internal state
+        self.current_x = None
+        self.current_y = None
+        self.current_yaw = None
+
+        self.start_x = None
+        self.start_y = None
+
+        self.turn_start_yaw = None
+        self.turn_target_yaw = None
+
+        self.state = 'WAIT_FOR_ODOM'      # WAIT_FOR_ODOM, FORWARD, TURN_COARSE, TURN_FINE, STOP
+        self.sides_completed = 0
+        self.total_sides = 4
+
+        # Publisher: TwistStamped → diff_drive_controller (Jazzy uses TwistStamped only)
+        self.cmd_pub = self.create_publisher(TwistStamped, '/diff_drive_controller/cmd_vel', 10)
+
+        # Odometry subscriber — use EKF-filtered pose for stable heading feedback
+        self.odom_sub = self.create_subscription(
+            Odometry,
+            '/odometry/filtered',
+            self.odom_callback,
+            10
         )
 
-    # ── odometry callback ────────────────────────────────────────────────────
-    def _odom_cb(self, msg: Odometry):
-        self._x   = msg.pose.pose.position.x
-        self._y   = msg.pose.pose.position.y
-        self._yaw = _yaw_from_quat(msg.pose.pose.orientation)
-        self._odom_ready = True
+        # Control loop timer: 50 Hz
+        self.timer = self.create_timer(0.02, self.control_loop)
 
-    # ── control loop ─────────────────────────────────────────────────────────
-    def _step(self):
-        if not self._odom_ready:
-            return
+        self.get_logger().info("SquareMover node started. Waiting for /odom...")
 
-        if self._state == "wait":
-            self._begin_segment()
+    def odom_callback(self, msg: Odometry):
+        # Update current pose
+        self.current_x = msg.pose.pose.position.x
+        self.current_y = msg.pose.pose.position.y
+        self.current_yaw = yaw_from_quaternion(msg.pose.pose.orientation)
 
-        elif self._state == "move":
-            dist = math.hypot(self._x - self._ref_x, self._y - self._ref_y)
-            if dist < SIDE_M - LINEAR_TOL:
-                self._cmd(linear=LINEAR_SPEED)
-            else:
-                self._cmd()
-                self._ref_yaw = self._yaw
-                self._state = "turn"
-                self.get_logger().info(
-                    f"  Side {self._side + 1}/4 done  "
-                    f"(x={self._x:.2f}, y={self._y:.2f})  →  turning…"
-                )
+        # Initialize start pose once
+        if self.state == 'WAIT_FOR_ODOM':
+            self.start_x = self.current_x
+            self.start_y = self.current_y
+            self.state = 'FORWARD'
+            self.get_logger().info("Received first odom. Starting square motion.")
 
-        elif self._state == "turn":
-            delta = _wrap(self._yaw - self._ref_yaw)
-            # right turn = negative yaw change of π/2
-            if abs(delta) < math.pi / 2.0 - ANGULAR_TOL:
-                self._cmd(angular=-ANGULAR_SPEED)
-            else:
-                self._cmd()
-                self._side += 1
-                if self._side >= 4:
-                    self._state = "done"
-                    self.get_logger().info(
-                        "Square complete! "
-                        f"Final pose: x={self._x:.3f} y={self._y:.3f} "
-                        f"yaw={math.degrees(self._yaw):.1f}°"
-                    )
-                else:
-                    self._begin_segment()
-
-        elif self._state == "done":
-            self._cmd()   # keep publishing zero to hold stop
-
-    # ── helpers ──────────────────────────────────────────────────────────────
-    def _begin_segment(self):
-        self._ref_x   = self._x
-        self._ref_y   = self._y
-        self._ref_yaw = self._yaw
-        self._state   = "move"
-        self.get_logger().info(
-            f"Side {self._side + 1}/4 start  "
-            f"(x={self._ref_x:.2f}, y={self._ref_y:.2f}, "
-            f"yaw={math.degrees(self._ref_yaw):.1f}°)"
-        )
-
-    def _cmd(self, linear: float = 0.0, angular: float = 0.0):
+    def publish_cmd(self, twist: Twist):
+        """
+        Helper: wrap a Twist into a TwistStamped and publish it.
+        """
         msg = TwistStamped()
         msg.header.stamp = self.get_clock().now().to_msg()
-        msg.header.frame_id = "base_footprint"
-        msg.twist.linear.x  = linear
-        msg.twist.angular.z = angular
-        self._pub.publish(msg)
+        msg.header.frame_id = 'base_footprint'
+        msg.twist = twist
+        self.cmd_pub.publish(msg)
+
+    def start_turn(self):
+        """Initialize a new 90° turn from current yaw."""
+        self.turn_start_yaw = self.current_yaw
+        self.turn_target_yaw = normalize_angle(self.turn_start_yaw + math.pi / 2.0)
+        self.state = 'TURN_COARSE'
+        self.get_logger().info(
+            f"Starting turn. Target yaw: {math.degrees(self.turn_target_yaw):.2f} deg"
+        )
+
+    def control_turn(self, coarse: bool) -> Twist:
+        """Return a Twist command for coarse or fine turning."""
+        twist = Twist()
+
+        # Compute error to fixed target_yaw
+        error = normalize_angle(self.turn_target_yaw - self.current_yaw)
+
+        if coarse:
+            # Coarse phase: get within angle_coarse_thresh
+            if abs(error) < self.angle_coarse_thresh:
+                # Done with coarse; switch to fine
+                self.state = 'TURN_FINE'
+                self.get_logger().info("Coarse turn done, switching to fine control.")
+                return twist  # zero command this cycle
+
+            k_ang = 1.2
+            ang_cmd = k_ang * error
+            # Saturate
+            ang_cmd = max(min(ang_cmd, self.angular_speed_coarse), -self.angular_speed_coarse)
+            twist.angular.z = ang_cmd
+            return twist
+
+        else:
+            # Fine phase: precise turn to small tolerance
+            if abs(error) < self.angle_tolerance_fine:
+                # Turn completed
+                twist.angular.z = 0.0
+                self.sides_completed += 1
+                self.get_logger().info(
+                    f"Turn completed. Sides done: {self.sides_completed}/{self.total_sides}"
+                )
+
+                if self.sides_completed >= self.total_sides:
+                    self.state = 'STOP'
+                    self.get_logger().info("Square completed. Stopping.")
+                else:
+                    # Next side
+                    self.start_x = self.current_x
+                    self.start_y = self.current_y
+                    self.state = 'FORWARD'
+                return twist
+
+            k_ang = 1.0
+            ang_cmd = k_ang * error
+            ang_cmd = max(min(ang_cmd, self.angular_speed_fine), -self.angular_speed_fine)
+            twist.angular.z = ang_cmd
+            return twist
+
+    def control_loop(self):
+        if self.current_x is None or self.current_y is None or self.current_yaw is None:
+            # No odom yet
+            return
+
+        twist = Twist()
+
+        if self.state == 'FORWARD':
+            # Distance from the starting point of this side
+            dx = self.current_x - self.start_x
+            dy = self.current_y - self.start_y
+            dist = math.sqrt(dx * dx + dy * dy)
+
+            if dist >= self.side_length - self.dist_tolerance:
+                # Stop and start a turn
+                twist.linear.x = 0.0
+                twist.angular.z = 0.0
+                self.publish_cmd(twist)
+
+                self.start_turn()
+                return
+            else:
+                # Drive straight
+                twist.linear.x = self.linear_speed
+                twist.angular.z = 0.0
+
+        elif self.state == 'TURN_COARSE':
+            twist = self.control_turn(coarse=True)
+
+        elif self.state == 'TURN_FINE':
+            twist = self.control_turn(coarse=False)
+
+        elif self.state == 'STOP':
+            twist.linear.x = 0.0
+            twist.angular.z = 0.0
+            # Optional: you could shut down here if you want the node to exit
+            # self.get_logger().info("Finished square. Not sending more commands.")
+        else:
+            # Unknown state, make sure we don't move
+            twist.linear.x = 0.0
+            twist.angular.z = 0.0
+
+        self.publish_cmd(twist)
 
 
-def main():
-    rclpy.init()
+def main(args=None):
+    rclpy.init(args=args)
     node = SquareMover()
     try:
         rclpy.spin(node)
     except KeyboardInterrupt:
-        node._cmd()   # stop the robot on Ctrl-C (publishes zero TwistStamped)
-        node.get_logger().info("Interrupted – robot stopped.")
+        node.get_logger().info('Keyboard interrupt, shutting down.')
     finally:
+        # Final stop command
+        stop_twist = Twist()
+        node.publish_cmd(stop_twist)
         node.destroy_node()
         rclpy.shutdown()
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
