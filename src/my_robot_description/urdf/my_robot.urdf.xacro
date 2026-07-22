@@ -127,6 +127,20 @@
             <state_interface name="position"/>
             <state_interface name="velocity"/>
         </joint>
+        <!-- IMU sensor state interfaces: lets gz_ros2_control manage the sensor
+             and publish it via imu_sensor_broadcaster instead of Gazebo bridge -->
+        <sensor name="imu_sensor">
+            <state_interface name="orientation.x"/>
+            <state_interface name="orientation.y"/>
+            <state_interface name="orientation.z"/>
+            <state_interface name="orientation.w"/>
+            <state_interface name="angular_velocity.x"/>
+            <state_interface name="angular_velocity.y"/>
+            <state_interface name="angular_velocity.z"/>
+            <state_interface name="linear_acceleration.x"/>
+            <state_interface name="linear_acceleration.y"/>
+            <state_interface name="linear_acceleration.z"/>
+        </sensor>
     </ros2_control>
 
     <!-- gz_ros2_control plugin (starts controller_manager inside Gazebo) -->

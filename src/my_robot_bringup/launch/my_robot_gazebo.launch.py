@@ -17,7 +17,6 @@ def generate_launch_description():
     gazebo_config_path     = os.path.join(pkg_bringup, 'config', 'gazebo_bridge.yaml')
     controllers_config     = os.path.join(pkg_bringup, 'config', 'my_controllers.yaml')
     ekf_config             = os.path.join(pkg_bringup, 'config', 'ekf.yaml')
-    ekf_imu_only_config    = os.path.join(pkg_bringup, 'config', 'ekf_imu_only.yaml')
     world_path             = os.path.join(pkg_bringup, 'worlds', 'test_world.sdf')
     gz_launch              = os.path.join(
         get_package_share_directory('ros_gz_sim'), 'launch', 'gz_sim.launch.py')
@@ -77,6 +76,15 @@ def generate_launch_description():
             executable='spawner',
             arguments=[
                 'diff_drive_controller',
+                '--controller-manager', '/controller_manager',
+                '--controller-manager-timeout', '60',
+            ],
+        ),
+        Node(
+            package='controller_manager',
+            executable='spawner',
+            arguments=[
+                'imu_broadcaster',
                 '--controller-manager', '/controller_manager',
                 '--controller-manager-timeout', '60',
             ],

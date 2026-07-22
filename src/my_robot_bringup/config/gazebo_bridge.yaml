@@ -23,15 +23,6 @@
   direction: GZ_TO_ROS
 
 # ==========================================
-#         IMU BRIDGE
-# ==========================================
-- ros_topic_name: "/imu"
-  gz_topic_name: "/imu"
-  ros_type_name: "sensor_msgs/msg/Imu"
-  gz_type_name: "gz.msgs.IMU"
-  direction: GZ_TO_ROS
-
-# ==========================================
 #    GROUND TRUTH POSE (from OdometryPublisher)
 # ==========================================
 - ros_topic_name: "/ground_truth/odom"
