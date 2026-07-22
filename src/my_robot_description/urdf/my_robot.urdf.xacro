@@ -148,6 +148,21 @@
             <odom_publish_frequency>50</odom_publish_frequency>
         </plugin>
     </gazebo>
+
+    <!-- Ground truth raw pose (position + orientation only, no velocity) -->
+    <gazebo>
+        <plugin filename="gz-sim-pose-publisher-system"
+                name="gz::sim::systems::PosePublisher">
+            <topic>/model/my_robot/pose_gt</topic>
+            <publish_link_pose>false</publish_link_pose>
+            <publish_visual_pose>false</publish_visual_pose>
+            <publish_collision_pose>false</publish_collision_pose>
+            <publish_sensor_pose>false</publish_sensor_pose>
+            <use_pose_vector_msg>false</use_pose_vector_msg>
+            <publish_model_pose>true</publish_model_pose>
+            <publish_nested_model_pose>true</publish_nested_model_pose>
+        </plugin>
+    </gazebo>
     
     <xacro:property name="camera_length" value="0.01" />
     <xacro:property name="camera_width" value="0.1" />
