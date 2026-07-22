@@ -19,9 +19,10 @@ diff_drive_controller:
       - base_rear_right_wheel_joint
 
     # Actual wheel separation is 0.45 m.
-    # Using 0.60 m introduces a ~33% heading error per turn,
-    # which the EKF clearly corrects with IMU absolute yaw.
-    wheel_separation: 0.60
+    # Using 0.80 m introduces a ~78% heading error per turn so that
+    # raw wheel odometry clearly diverges from ground truth and
+    # the EKF IMU correction is visually unmistakeable.
+    wheel_separation: 0.80
     wheel_radius: 0.1
 
     odom_frame_id: odom
