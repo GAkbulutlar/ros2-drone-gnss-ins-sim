@@ -9,7 +9,7 @@ endif()
 find_package(ament_cmake REQUIRED)
 
 
-install(DIRECTORY launch config worlds
+install(DIRECTORY launch config worlds scripts
   DESTINATION share/${PROJECT_NAME}/
 )
 
