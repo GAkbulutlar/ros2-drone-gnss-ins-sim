@@ -105,10 +105,9 @@ def generate_launch_description():
             output='screen',
         ),
 
-        # ── Trajectory recorder: saves PNG plot on shutdown ───────────────────
+        # -- Trajectory recorder: saves PNG plot on shutdown -------------------
         ExecuteProcess(
             cmd=['python3', os.path.join(scripts_dir, 'plot_trajectories.py')],
             output='screen',
-            sigterm_timeout='15',   # give it time to write the PNG
         ),
     ])
