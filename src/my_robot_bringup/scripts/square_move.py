@@ -9,6 +9,7 @@ Square path controller for a mobile robot in ROS 2, publishing TwistStamped.
 import math
 
 import rclpy
+import rclpy.parameter
 from rclpy.node import Node
 
 from geometry_msgs.msg import Twist, TwistStamped
@@ -34,6 +35,10 @@ def normalize_angle(angle):
 class SquareMover(Node):
     def __init__(self):
         super().__init__('square_mover')
+
+        # Use simulation time so timestamps match the ROS clock
+        self.set_parameters([rclpy.parameter.Parameter(
+            'use_sim_time', rclpy.parameter.Parameter.Type.BOOL, True)])
 
         # Parameters
         self.side_length = 2.0        # meters
@@ -67,10 +72,11 @@ class SquareMover(Node):
         # Publisher: TwistStamped → diff_drive_controller (Jazzy uses TwistStamped only)
         self.cmd_pub = self.create_publisher(TwistStamped, '/diff_drive_controller/cmd_vel', 10)
 
-        # Odometry subscriber — use EKF-filtered pose for stable heading feedback
+        # Odometry subscriber — raw wheel odom for reliable control
+        # (EKF heading can be biased by IMU noise during startup)
         self.odom_sub = self.create_subscription(
             Odometry,
-            '/odometry/filtered',
+            '/diff_drive_controller/odom',
             self.odom_callback,
             10
         )
